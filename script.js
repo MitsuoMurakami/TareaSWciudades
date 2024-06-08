@@ -11,21 +11,42 @@ document.getElementById('distanceForm').addEventListener('submit', async functio
 
     try {
         if (source === 'api') {
-            console.log("1")
             coords1 = await getCoordinatesFromAPI(city1, country1);
-            console.log("2")
             coords2 = await getCoordinatesFromAPI(city2, country2);
-            console.log("3")
         } else {
             coords1 = await getCoordinatesFromCSV(city1, country1);
             coords2 = await getCoordinatesFromCSV(city2, country2);
         }
 
-        console.log("coords1:", coords1)
-        console.log("coords2:", coords2)
         const distance = await calculateDistance(coords1, coords2);
-        console.log("distance:", distance)
         displayResult(distance);
+    } catch (error) {
+        displayError(error.message);
+    }
+});
+
+document.getElementById('closestCitiesForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const citiesList = document.getElementById('citiesList').value.split('\n');
+    const source = document.getElementById('sourceList').value;
+
+    let citiesCoords = [];
+
+    try {
+        for (let cityCountry of citiesList) {
+            const [city, country] = cityCountry.split(',');
+            let coords;
+            if (source === 'api') {
+                coords = await getCoordinatesFromAPI(city.trim(), country.trim());
+            } else {
+                coords = await getCoordinatesFromCSV(city.trim(), country.trim());
+            }
+            citiesCoords.push({ city: city.trim(), country: country.trim(), coords });
+        }
+
+        const closestCities = await findClosestCities(citiesCoords);
+        displayClosestResult(closestCities);
     } catch (error) {
         displayError(error.message);
     }
@@ -43,20 +64,11 @@ async function getCoordinatesFromAPI(city, country) {
     }
 
     const data = await response.json();
-        // Parsear el JSON contenido en `body`
     let parsedBody = JSON.parse(data.body);
-
-    // Extraer las propiedades `lat` y `lng`
     let lat = parsedBody.lat;
     let lng = parsedBody.lng;
 
-    // Imprimir los valores para verificar
-    console.log("Latitud:", lat);
-    console.log("Longitud:", lng);
-
-    // Retornar un objeto con `lat` y `lng`
-    let coordinates = { lat, lng };
-    return coordinates;
+    return { lat, lng };
 }
 
 async function getCoordinatesFromCSV(city, country) {
@@ -71,27 +83,14 @@ async function getCoordinatesFromCSV(city, country) {
     }
 
     const data = await response.json();
-        // Parsear el JSON contenido en `body`
-        let parsedBody = JSON.parse(data.body);
+    let parsedBody = JSON.parse(data.body);
+    let lat = parsedBody.lat;
+    let lng = parsedBody.lng;
 
-        // Extraer las propiedades `lat` y `lng`
-        let lat = parsedBody.lat;
-        let lng = parsedBody.lng;
-    
-        // Imprimir los valores para verificar
-        console.log("Latitud:", lat);
-        console.log("Longitud:", lng);
-    
-        // Retornar un objeto con `lat` y `lng`
-        let coordinates = { lat, lng };
-        return coordinates;
+    return { lat, lng };
 }
 
 async function calculateDistance(coords1, coords2) {
-    console.log("coord1.lat:", coords1.lat)
-    console.log("coord1.lng:", coords1.lng)
-    console.log("coord2.lat:", coords2.lat)
-    console.log("coord2.lng:", coords2.lng)
     const response = await fetch(`https://9752hymjxk.execute-api.us-east-1.amazonaws.com/prueba/distancia`, {
         method: 'POST',
         body: JSON.stringify({
@@ -108,26 +107,47 @@ async function calculateDistance(coords1, coords2) {
     }
 
     const data = await response.json();
-        // Parsear el JSON contenido en `body`
-        let parsedBody = JSON.parse(data.body);
-
-        // Extraer las propiedades `lat` y `lng`
-        let distance = parsedBody.distance_km
-    
-        // Imprimir los valores para verificar
-        console.log("Distancia:", distance);
+    let parsedBody = JSON.parse(data.body);
+    let distance = parsedBody.distance_km;
 
     return distance;
 }
 
+async function findClosestCities(citiesCoords) {
+    let minDistance = Infinity;
+    let closestPair = {};
+    console.log("citiesCoords", citiesCoords);
+
+    for (let i = 0; i < citiesCoords.length; i++) {
+        for (let j = i + 1; j < citiesCoords.length; j++) {
+            const distance = await calculateDistance(citiesCoords[i].coords, citiesCoords[j].coords);
+            console.log("distance:", distance);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPair = {
+                    city1: citiesCoords[i].city,
+                    country1: citiesCoords[i].country,
+                    city2: citiesCoords[j].city,
+                    country2: citiesCoords[j].country,
+                    distance: minDistance
+                };
+            }
+        }
+    }
+
+    return closestPair;
+}
+
 function displayResult(distance) {
-    console.log("display result");
     const resultDiv = document.getElementById('result');
-    console.log("a");
     resultDiv.innerHTML = `<h3>Distancia: ${distance} km</h3>`;
-    console.log("b")
     resultDiv.style.color = 'green';
-    console.log("c")
+}
+
+function displayClosestResult(closestPair) {
+    const resultDiv = document.getElementById('closestResult');
+    resultDiv.innerHTML = `<h3>Las ciudades más cercanas son ${closestPair.city1}, ${closestPair.country1} y ${closestPair.city2}, ${closestPair.country2} con una distancia de ${closestPair.distance.toFixed(2)} km</h3>`;
+    resultDiv.style.color = 'green';
 }
 
 function displayError(errorMessage) {

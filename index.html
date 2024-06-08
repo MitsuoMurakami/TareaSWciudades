@@ -37,6 +37,25 @@
             <button type="submit" class="btn btn-primary">Calcular Distancia</button>
         </form>
         <div id="result" class="mt-4"></div>
+        
+        <hr class="my-4">
+        
+        <h2 class="text-center">Encontrar las Ciudades más Cercanas</h2>
+        <form id="closestCitiesForm">
+            <div class="form-group">
+                <label for="citiesList">Lista de Ciudades (Formato: ciudad,país)</label>
+                <textarea class="form-control" id="citiesList" rows="5" placeholder="Ingrese una lista de ciudades y países separados por comas, una por línea" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="sourceList">Fuente de Coordenadas</label>
+                <select class="form-control" id="sourceList" required>
+                    <option value="api">API</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Encontrar Ciudades Más Cercanas</button>
+        </form>
+        <div id="closestResult" class="mt-4"></div>
     </div>
     <script src="script.js"></script>
 </body>
